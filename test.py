@@ -4,7 +4,7 @@ import os
 import hydra
 from hydra.utils import instantiate
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.plugins import DDPPlugin
+# from pytorch_lightning.plugins import DDPPlugin
 import torch
 
 from data.data_module import DataModule
@@ -37,7 +37,7 @@ def main(cfg):
     trainer = Trainer(
         **cfg.trainer,
         logger=wandb_logger,
-        strategy=DDPPlugin(find_unused_parameters=False) if cfg.gpus > 1 else None
+        # strategy=DDPPlugin(find_unused_parameters=False) if cfg.gpus > 1 else None
     )
 
     trainer.test(learner, datamodule=data_module)
