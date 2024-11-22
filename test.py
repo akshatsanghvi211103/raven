@@ -33,7 +33,7 @@ def main(cfg):
 
     data_module = DataModule(cfg)
     learner = Learner(cfg)
-
+    print(cfg.trainer)
     trainer = Trainer(
         **cfg.trainer,
         logger=wandb_logger,

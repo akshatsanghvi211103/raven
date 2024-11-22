@@ -14,7 +14,6 @@ project_name: raven_test
 experiment_name:
 num_workers: 8
 fix_seed: True
-# gpus:
 slurm_job_id:
 train: False
 log_wandb: True
