@@ -61,8 +61,8 @@ class DataModule(LightningDataModule):
     def __init__(self, cfg=None):
         super().__init__()
         self.cfg = cfg
-        self.total_gpus = self.cfg.gpus * self.cfg.trainer.num_nodes
-        print("total gpus:", self.total_gpus)
+        # self.total_gpus = self.cfg.gpus * self.cfg.trainer.num_nodes
+        # print("total gpus:", self.total_gpus)
 
     def _video_transform(self, mode):
         args = self.cfg.data
@@ -145,6 +145,6 @@ class DataModule(LightningDataModule):
         sampler = ByFrameCountSampler(
             test_ds, self.cfg.data.frames_per_gpu_val, shuffle=False
         )
-        if self.total_gpus > 1:
-            sampler = DistributedSamplerWrapper(sampler, shuffle=False, drop_last=True)
+        # if self.total_gpus > 1:
+            # sampler = DistributedSamplerWrapper(sampler, shuffle=False, drop_last=True)
         return self._dataloader(test_ds, sampler, collate_pad)
