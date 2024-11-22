@@ -123,6 +123,8 @@ class DataModule(LightningDataModule):
 
     def test_dataloader(self):
         ds_args = self.cfg.data.dataset
+        print(ds_args, "hi there")
+        print(self.cfg)
 
         transform_video = self._video_transform(mode="val")
         transform_audio = self._audio_transform(mode="val")
