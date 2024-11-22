@@ -25,7 +25,7 @@ def main(cfg):
     cfg.slurm_job_id = os.environ["SLURM_JOB_ID"]
 
     # cfg.gpus = torch.cuda.device_count()
-    print("num gpus:", cfg.gpus)
+    # print("num gpus:", cfg.gpus)
 
     wandb_logger = None
     if cfg.log_wandb:
