@@ -47,7 +47,7 @@ class BatchBeamSearch(BeamSearch):
     def _batch_select(self, hyps: BatchHypothesis, ids: List[int]) -> BatchHypothesis:
         hyps.score.to("cuda:0")
         hyps.length.to("cuda:0")
-        # print(hyps.score.device, hyps.yseq.device, hyps.length.device, ids.device, "nice")
+        print(hyps.score.device, hyps.yseq.device, hyps.length.device, ids.device, "nice")
         return BatchHypothesis(
             yseq=hyps.yseq[ids],
             score=hyps.score[ids],
