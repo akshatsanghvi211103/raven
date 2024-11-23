@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+video_path_prefix_the_book_leo/
+spm/
 
 # C extensions
 *.so

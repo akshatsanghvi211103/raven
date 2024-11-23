@@ -1,0 +1,40 @@
+diff --git a/conf/config_test.yaml b/conf/config_test.yaml
+index f7c9591..f2fca21 100644
+--- a/conf/config_test.yaml
++++ b/conf/config_test.yaml
+@@ -14,8 +14,7 @@ project_name: raven_test
+ experiment_name:
+ num_workers: 8
+ fix_seed: True
+-# gpus:
+ slurm_job_id:
+ train: False
+ log_wandb: True
+-test_on_one_gpu: True
+\ No newline at end of file
++test_on_one_gpu: True
+diff --git a/conf/trainer/finetune.yaml b/conf/trainer/finetune.yaml
+index 1d5eca4..9e19ded 100644
+--- a/conf/trainer/finetune.yaml
++++ b/conf/trainer/finetune.yaml
+@@ -1,4 +1,2 @@
+ precision: 32
+-gpus: -1
+ num_nodes: 1
+-replace_sampler_ddp: False
+\ No newline at end of file
+diff --git a/finetune_learner.py b/finetune_learner.py
+index 7176a7d..55c8280 100644
+--- a/finetune_learner.py
++++ b/finetune_learner.py
+@@ -124,8 +124,9 @@ class Learner(LightningModule):
+         padding_mask = make_non_pad_mask(lengths).to(lengths.device)
+         self.calculate_wer(data["data"], padding_mask, data["label"])
+ 
+-    def test_epoch_end(self, outputs):
++    def on_test_epoch_end(self, outputs):
+         wer = self.wer.compute()
+         print(wer)
+         self.log("wer", wer)
+         self.wer.reset()
++

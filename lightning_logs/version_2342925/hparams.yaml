@@ -1,0 +1,133 @@
+project_name: raven_test
+experiment_name: vsr_prelrs3vox2_large_ftlrs3_test
+num_workers: 8
+fix_seed: true
+slurm_job_id: '2343084'
+train: false
+log_wandb: true
+test_on_one_gpu: true
+data:
+  frames_per_gpu_val: 500
+  modality: video
+  labels_type: unigram1000
+  dataset:
+    sample_rate: 16000
+    fps: 25
+    train_csv: train_with_tags_counts_unigram1000.csv
+    val_csv: val_with_tags_counts_unigram1000.csv
+    test_csv: test_with_tags_counts_unigram1000.csv
+    paths:
+      root_lrs3_video: null
+      root_lrs3_audio: null
+      root_lrs2_video: null
+      root_lrs2_audio: null
+  channel:
+    obj:
+      _target_: torchvision.transforms.Normalize
+      mean:
+      - 0.421
+      std:
+      - 0.165
+    in_video_channels: 1
+  crop_type:
+    random_crop_dim: 88
+logger:
+  _target_: pytorch_lightning.loggers.WandbLogger
+  log_model: true
+  name: vsr_prelrs3vox2_large_ftlrs3_test
+  offline: false
+  project: raven_test
+  mode: online
+  entity: null
+logging:
+  logging_interval: step
+model:
+  pretrained_model_path: /ssd_scratch/cvit/akshat/vsr_prelrs3vox2_large_ftlrs3.pth
+  pretrained_lm_path: null
+  visual_backbone:
+    idim: 512
+    adim: 1024
+    aheads: 16
+    eunits: 4096
+    elayers: 24
+    transformer_frontend: conv3d
+    transformer_input_layer: vanilla_linear
+    dropout_rate: 0.1
+    transformer_attn_dropout_rate: 0.1
+    transformer_encoder_attn_layer_type: rel_mha
+    macaron_style: false
+    use_cnn_module: false
+    cnn_module_kernel: 31
+    zero_triu: false
+    a_upsample_ratio: 1
+    relu_type: swish
+    ddim: 1024
+    dheads: 16
+    dunits: 4096
+    dlayers: 9
+    lsm_weight: 0.1
+    transformer_length_normalized_loss: false
+    rel_pos_type: latest
+    layerscale: true
+    init_values: 0.1
+    ff_bn_pre: true
+    post_norm: false
+    gamma_zero: false
+    gamma_init: 0.1
+    mask_init_type: null
+    ctc_type: warpctc
+    drop_path: 0.1
+    mtlalpha: 0.1
+  audio_backbone:
+    idim: 512
+    adim: 512
+    aheads: 8
+    eunits: 2048
+    elayers: 12
+    transformer_frontend: conv1d
+    transformer_input_layer: vanilla_linear
+    dropout_rate: 0.1
+    transformer_attn_dropout_rate: 0.1
+    transformer_encoder_attn_layer_type: rel_mha
+    macaron_style: false
+    use_cnn_module: false
+    cnn_module_kernel: 31
+    zero_triu: false
+    a_upsample_ratio: 1
+    relu_type: swish
+    ddim: 512
+    dheads: 8
+    dunits: 2048
+    dlayers: 6
+    lsm_weight: 0.1
+    transformer_length_normalized_loss: false
+    rel_pos_type: latest
+    layerscale: true
+    init_values: 0.1
+    ff_bn_pre: true
+    post_norm: false
+    gamma_zero: false
+    gamma_init: 0.1
+    mask_init_type: null
+    ctc_type: warpctc
+    drop_path: 0.0
+    mtlalpha: 0.1
+  language_model:
+    pos_enc: none
+    embed_unit: 128
+    att_unit: 512
+    head: 8
+    unit: 2048
+    layer: 16
+    dropout_rate: 0.0
+trainer:
+  precision: 32
+  num_nodes: 1
+decode:
+  name: default
+  penalty: 0.0
+  ctc_weight: 0.1
+  lm_weight: 0.0
+  beam_size: 40
+  minlenratio: 0.0
+  maxlenratio: 0.0
