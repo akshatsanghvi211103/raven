@@ -134,7 +134,8 @@ class DataModule(LightningDataModule):
         )
 
         test_ds = AVDataset(
-            data_path=os.path.join(parent_path, "data_paths", ds_args.test_csv),
+            # data_path=os.path.join(parent_path, "data_paths", ds_args.test_csv),
+            data_path=os.path.join(parent_path, "output.txt"),
             video_path_prefix_lrs2=ds_args.paths.root_lrs2_video,
             audio_path_prefix_lrs2=ds_args.paths.root_lrs2_audio,
             video_path_prefix_lrs3=ds_args.paths.root_lrs3_video,
