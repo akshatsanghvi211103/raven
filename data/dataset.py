@@ -69,7 +69,7 @@ class AVDataset(Dataset):
                 break
         cap.release()
         if not frames:
-            print(path)
+            print(path, "here")
             return None
         frames = torch.from_numpy(np.stack(frames))
         frames = frames.permute((3, 0, 1, 2))  # TxHxWxC -> # CxTxHxW
