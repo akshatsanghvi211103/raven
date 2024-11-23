@@ -1,3 +1,2 @@
 precision: 32
 num_nodes: 1
-replace_sampler_ddp: False
