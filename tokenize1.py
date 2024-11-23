@@ -35,4 +35,4 @@ with open(input_file, "r") as fin, open(output_file, "w") as fout:
         token_id_str = " ".join(map(str, token_ids))  # Join IDs into a single string
 
         # Write the output in the desired format
-        fout.write(f"{folder_name}, {video_name}, {random_integer}, {token_id_str}\n")
+        fout.write(f"{folder_name},{video_name},{random_integer},{token_id_str}\n")
