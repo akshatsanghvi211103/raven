@@ -12,7 +12,7 @@ from finetune_learner import Learner
 
 
 # static vars
-os.environ["WANDB_SILENT"] = "true"
+# os.environ["WANDB_SILENT"] = "true"
 logging.getLogger("lightning").propagate = False
 
 
@@ -27,16 +27,16 @@ def main(cfg):
     # cfg.gpus = torch.cuda.device_count()
     # print("num gpus:", cfg.gpus)
 
-    wandb_logger = None
-    if cfg.log_wandb:
-        wandb_logger = instantiate(cfg.logger)
+    # wandb_logger = None
+    # if cfg.log_wandb:
+        # wandb_logger = instantiate(cfg.logger)
 
     data_module = DataModule(cfg)
     learner = Learner(cfg)
-    print(cfg.trainer)
+    # print(cfg.trainer)
     trainer = Trainer(
         **cfg.trainer,
-        logger=wandb_logger,
+        # logger=wandb_logger,
         # strategy=DDPPlugin(find_unused_parameters=False) if cfg.gpus > 1 else None
     )
 

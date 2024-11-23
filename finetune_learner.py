@@ -124,7 +124,7 @@ class Learner(LightningModule):
         padding_mask = make_non_pad_mask(lengths).to(lengths.device)
         self.calculate_wer(data["data"], padding_mask, data["label"])
 
-    def test_epoch_end(self, outputs):
+    def on_test_epoch_end(self, outputs):
         wer = self.wer.compute()
         print(wer)
         self.log("wer", wer)
