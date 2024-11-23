@@ -25,22 +25,24 @@ class AVDataset(Dataset):
     def __init__(
         self,
         data_path,
-        video_path_prefix_lrs2,
-        audio_path_prefix_lrs2,
-        video_path_prefix_lrs3,
-        audio_path_prefix_lrs3,
-        video_path_prefix_vox2=None,
-        audio_path_prefix_vox2=None,
+        root_dir,
+        # video_path_prefix_lrs2,
+        # audio_path_prefix_lrs2,
+        # video_path_prefix_lrs3,
+        # audio_path_prefix_lrs3,
+        # video_path_prefix_vox2=None,
+        # audio_path_prefix_vox2=None,
         transforms=None,
         modality="audiovisual",
     ):
         self.data_path = data_path
-        self.video_path_prefix_lrs3 = video_path_prefix_lrs3
-        self.audio_path_prefix_lrs3 = audio_path_prefix_lrs3
-        self.video_path_prefix_vox2 = video_path_prefix_vox2
-        self.audio_path_prefix_vox2 = audio_path_prefix_vox2
-        self.video_path_prefix_lrs2 = video_path_prefix_lrs2
-        self.audio_path_prefix_lrs2 = audio_path_prefix_lrs2
+        self.root_dir = '/ssd_scratch/cvit/vanshg/datasets/accented_speakers'
+        # self.video_path_prefix_lrs3 = video_path_prefix_lrs3
+        # self.audio_path_prefix_lrs3 = audio_path_prefix_lrs3
+        # self.video_path_prefix_vox2 = video_path_prefix_vox2
+        # self.audio_path_prefix_vox2 = audio_path_prefix_vox2
+        # self.video_path_prefix_lrs2 = video_path_prefix_lrs2
+        # self.audio_path_prefix_lrs2 = audio_path_prefix_lrs2
         self.transforms = transforms
         self.modality = modality
 
@@ -51,9 +53,13 @@ class AVDataset(Dataset):
         paths_counts_labels = []
         with open(self.data_path, "r") as f:
             for path_count_label in f.read().splitlines():
-                tag, file_path, count, label = path_count_label.split(",")
+                # tag, file_path, count, label = path_count_label.split(",")
+                file_path, label = path_count_label.split()[0], " ".join(path_count_label.split()[1:])
+                # paths_counts_labels.append(
+                #     (tag, file_path, int(count), [int(lab) for lab in label.split()])
+                # )
                 paths_counts_labels.append(
-                    (tag, file_path, int(count), [int(lab) for lab in label.split()])
+                    (file_path, label)
                 )
         return paths_counts_labels
 
@@ -84,8 +90,9 @@ class AVDataset(Dataset):
 
     def __getitem__(self, index):
         tag, file_path, _, label = self.paths_counts_labels[index]
-        self.video_path_prefix = getattr(self, f"video_path_prefix_{tag}", "")
-        self.audio_path_prefix = getattr(self, f"audio_path_prefix_{tag}", "")
+        self.video_path_prefix = self.root_dir
+        # self.video_path_prefix = getattr(self, f"video_path_prefix_{tag}", "")
+        # self.audio_path_prefix = getattr(self, f"audio_path_prefix_{tag}", "")
 
         if self.modality == "video":
             data = self.load_video(os.path.join(self.video_path_prefix, file_path))

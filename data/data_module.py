@@ -117,7 +117,7 @@ class DataModule(LightningDataModule):
             ds,
             num_workers=self.cfg.num_workers,
             pin_memory=True,
-            batch_sampler=sampler,
+            # batch_sampler=sampler,
             collate_fn=collate_fn,
         )
 
@@ -136,10 +136,10 @@ class DataModule(LightningDataModule):
         test_ds = AVDataset(
             # data_path=os.path.join(parent_path, "data_paths", ds_args.test_csv),
             data_path=os.path.join(parent_path, "output.txt"),
-            video_path_prefix_lrs2=ds_args.paths.root_lrs2_video,
-            audio_path_prefix_lrs2=ds_args.paths.root_lrs2_audio,
-            video_path_prefix_lrs3=ds_args.paths.root_lrs3_video,
-            audio_path_prefix_lrs3=ds_args.paths.root_lrs3_audio,
+            # video_path_prefix_lrs2=ds_args.paths.root_lrs2_video,
+            # audio_path_prefix_lrs2=ds_args.paths.root_lrs2_audio,
+            # video_path_prefix_lrs3=ds_args.paths.root_lrs3_video,
+            # audio_path_prefix_lrs3=ds_args.paths.root_lrs3_audio,
             transforms={"video": transform_video, "audio": transform_audio},
             modality=self.cfg.data.modality,
         )
