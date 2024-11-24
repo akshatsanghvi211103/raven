@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torchaudio
 from torch.utils.data import Dataset
-
+from .transforms import TextTransform
 
 def cut_or_pad(data, size, dim=0):
     # Pad with zeros on the right if data is too short
@@ -25,7 +25,6 @@ class AVDataset(Dataset):
     def __init__(
         self,
         data_path,
-        root_dir,
         # video_path_prefix_lrs2,
         # audio_path_prefix_lrs2,
         # video_path_prefix_lrs3,
@@ -33,7 +32,7 @@ class AVDataset(Dataset):
         # video_path_prefix_vox2=None,
         # audio_path_prefix_vox2=None,
         transforms=None,
-        modality="audiovisual",
+        modality="video",
     ):
         self.data_path = data_path
         self.root_dir = '/ssd_scratch/cvit/vanshg/datasets/accented_speakers'
@@ -45,6 +44,7 @@ class AVDataset(Dataset):
         # self.audio_path_prefix_lrs2 = audio_path_prefix_lrs2
         self.transforms = transforms
         self.modality = modality
+        self.text_transform = TextTransform()
 
         self.paths_counts_labels = self.configure_files()
         self.num_fails = 0
@@ -89,7 +89,9 @@ class AVDataset(Dataset):
         return len(self.paths_counts_labels)
 
     def __getitem__(self, index):
-        tag, file_path, _, label = self.paths_counts_labels[index]
+        file_path, gt_text = self.paths_counts_labels[index]
+        token_ids = self.text_transform.tokenize(gt_text.upper())
+        # tag, file_path, _, label = self.paths_counts_labels[index]
         self.video_path_prefix = self.root_dir
         # self.video_path_prefix = getattr(self, f"video_path_prefix_{tag}", "")
         # self.audio_path_prefix = getattr(self, f"audio_path_prefix_{tag}", "")
@@ -122,4 +124,4 @@ class AVDataset(Dataset):
         #     audio = self.transforms["audio"](audio.unsqueeze(0)).squeeze(0)
         #     return {"video": video, "audio": audio, "label": torch.tensor(label)}
 
-        return {"data": data, "label": torch.tensor(label)}
+        return {"data": data, "label": torch.tensor(token_ids)}

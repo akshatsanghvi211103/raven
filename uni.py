@@ -17,10 +17,10 @@ unique_to_file1 = {token: count for token, count in vocab1.items() if token not 
 unique_to_file2 = {token: count for token, count in vocab2.items() if token not in vocab1}
 
 # Output results
-print("Tokens unique to file 1:")
+print(f"Tokens unique to file 1: {len(unique_to_file1)}")
 for token, count in unique_to_file1.items():
     print(f"{token}: {count}")
 
-print("\nTokens unique to file 2:")
+print(f"\nTokens unique to file 2: {len(unique_to_file2)}")
 for token, count in unique_to_file2.items():
     print(f"{token}: {count}")
