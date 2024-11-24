@@ -17,8 +17,8 @@ num_workers: 8
 fix_seed: True
 slurm_job_id:
 train: False
-wandb: False
-verbose: True
+wandb: True
+verbose: False
 log_wandb: True
 test_on_one_gpu: True
 gpus: 1

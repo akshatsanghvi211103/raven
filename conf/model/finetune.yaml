@@ -3,5 +3,5 @@ defaults:
   - visual_backbone: resnet_transformer_base
   - audio_backbone: resnet_transformer_base
   - language_model: default
-pretrained_model_path: /ssd_scratch/cvit/akshat/checkpoints/vsr_prelrs3vox2_base_ftlrs3.pth
-pretrained_lm_path: /ssd_scratch/cvit/akshat/checkpoints/rnnlm.model.best
+pretrained_model_path: /home2/akshat/raven/checkpoints/vsr_prelrs3vox2_base_ftlrs3.pth
+pretrained_lm_path: /home2/akshat/raven/checkpoints/rnnlm.model.best

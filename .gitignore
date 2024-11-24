@@ -5,6 +5,7 @@ __pycache__/
 video_path_prefix_the_book_leo/
 processed_videos
 lightning_logs
+wandb
 
 # C extensions
 *.so

@@ -351,9 +351,11 @@ class Learner(LightningModule):
         # Results.csv data for this epoch
         if self.loggers and self.result_data:
             gt_len = gt_len
+            if gt_len == 0:
+                gt_len = 0.1
             wd = word_distance
             data = [
-                data_id.item(),
+                data_id,
                 video_path,
                 gt_text,
                 pred_text,

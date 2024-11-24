@@ -44,12 +44,11 @@ def main(cfg):
     dropout = cfg.model.visual_backbone.dropout_rate
     beam_size = cfg.decode.beam_size
 
-    project_name = f"raven_{speaker}_finetuning"
-    # run_name = f"{speaker}_{finetune_type}_finetuning_const_lr{lr}_wd{wd}"
-    # run_name = f"{speaker}_{finetune_type}"
-    run_name = f"{speaker}_{finetune_type}_finetuning_const_step_lr{lr}_wd{wd}_win{window}_stride{stride}_drop{dropout}_beam{beam_size}"
-    # run_name = f"{speaker}_{finetune_type}_finetuning_train2400_40_const_step_lr{lr}_wd{wd}_win{window}_stride{stride}_drop{dropout}_beam{beam_size}"
-    # run_name = f"{speaker}_freeze_frontend3D_finetuning_default_lr1e-4"
+    project_name = f"raven_{speaker}_inference"
+        # run_name = f"pretrained_perf_on_all_labels_beam{beam_size}"
+    # run_name = f"pretrained_perf_on_val_reduced_labels_beam{beam_size}"
+    run_name = f"pretrained_perf_on_test_reduced_labels_beam{beam_size}"
+
     cfg.log_folder = os.path.join(cfg.logging_dir, f"{project_name}/{run_name}")
     cfg.exp_dir = cfg.log_folder
     cfg.trainer.default_root_dir = cfg.log_folder
@@ -82,7 +81,7 @@ def main(cfg):
     trainer = Trainer(
         **cfg.trainer,
         max_epochs=10,
-        devices=[0],
+        devices=[1],
         logger=loggers,
         num_sanity_val_steps=0,
         # limit_train_batches=1,
@@ -93,7 +92,8 @@ def main(cfg):
     )
 
     # trainer.test(learner, datamodule=data_module)
-    trainer.fit(learner, datamodule=data_module)
+    trainer.validate(learner, verbose=True, datamodule=data_module)
+    # trainer.fit(learner, datamodule=data_module)
 
 
 if __name__ == "__main__":
