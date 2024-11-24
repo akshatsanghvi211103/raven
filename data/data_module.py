@@ -21,6 +21,12 @@ from .samplers import (
 )
 from .transforms import AdaptiveLengthTimeMask
 
+import numpy as np
+import random
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
 
 def pad(samples, pad_val=0.0):
     lengths = [len(s) for s in samples]
@@ -47,6 +53,15 @@ def pad(samples, pad_val=0.0):
 def collate_pad(batch):
     batch_out = {}
     for data_type in batch[0].keys():
+        if data_type == 'idx':
+            batch_out['ids'] = torch.tensor(
+                [s[data_type] for s in batch]
+            )
+            continue
+        if data_type == 'video_path':
+            # print(f"The data type is {data_type = }")
+            batch_out['video_paths'] = [s[data_type] for s in batch]
+            continue
         pad_val = -1 if data_type == "label" else 0.0
         c_batch, sample_lengths = pad(
             [s[data_type] for s in batch if s[data_type] is not None], pad_val
@@ -71,7 +86,7 @@ class DataModule(LightningDataModule):
         ] + (
             [
                 RandomCrop(args.crop_type.random_crop_dim),
-                RandomHorizontalFlip(args.horizontal_flip_prob),
+                RandomHorizontalFlip(0.5),
             ]
             if mode == "train"
             else [CenterCrop(args.crop_type.random_crop_dim)]
@@ -113,18 +128,33 @@ class DataModule(LightningDataModule):
         return Compose(transform)
 
     def _dataloader(self, ds, collate_fn):
-        return DataLoader(
+        g = torch.Generator()
+        g.manual_seed(0)
+        return torch.utils.data.DataLoader(
             ds,
-            num_workers=self.cfg.num_workers,
-            pin_memory=True,
+            batch_size=1,
+            num_workers=4,
+            pin_memory=False,
+            worker_init_fn=seed_worker,
+            generator=g,
             # batch_sampler=sampler,
             collate_fn=collate_fn,
         )
 
+    def train_dataloader(self):
+        ds_args = self.cfg.data.dataset
+        transform_video = self._video_transform(mode="train")
+        train_ds = AVDataset(
+            data_path=ds_args.train_file,
+            transforms={'video': transform_video},
+            modality=self.cfg.data.modality
+        )
+        return self._dataloader(train_ds, collate_pad)
+
     def test_dataloader(self):
         ds_args = self.cfg.data.dataset
         print(ds_args, "hi there")
-        print(self.cfg)
+        # print(self.cfg)
 
         transform_video = self._video_transform(mode="val")
         transform_audio = self._audio_transform(mode="val")
@@ -151,3 +181,29 @@ class DataModule(LightningDataModule):
             # sampler = DistributedSamplerWrapper(sampler, shuffle=False, drop_last=True)
         # return self._dataloader(test_ds, sampler, collate_pad)
         return self._dataloader(test_ds, collate_pad)
+
+    def val_dataloader(self):
+        ds_args = self.cfg.data.dataset
+
+        val_dataloaders = []
+        transform_video = self._video_transform(mode="val")
+
+        if ds_args.test_file is not None:
+            dataset = AVDataset(
+                data_path=ds_args.test_file,
+                transforms={"video": transform_video},
+                modality=self.cfg.data.modality
+            )
+            dataloader = self._dataloader(dataset, collate_pad)
+            val_dataloaders.append(dataloader)
+
+        if ds_args.val_file is not None:
+            dataset = AVDataset(
+                data_path=ds_args.val_file,
+                transforms={"video": transform_video},
+                modality=self.cfg.data.modality
+            )
+            dataloader = self._dataloader(dataset, collate_pad)
+            val_dataloaders.append(dataloader)
+
+        return val_dataloaders

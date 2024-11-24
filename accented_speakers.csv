@@ -1,0 +1,1 @@
+speaker,finetune,gnode,wandb_id,wandb_run,wandb_url,best_val_epoch,val_wer_best_val_epoch,test_wer_best_val_epoch,best_test_epoch,val_wer_at_test,best_test_wer

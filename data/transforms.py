@@ -13,7 +13,7 @@ from torchvision.transforms import RandomCrop, RandomResizedCrop
 #     "unigram",
 #     "unigram1000.model",
 # )
-SP_MODEL_PATH = '/home2/vanshg/raven/spm/unigram/unigram1000.model'
+SP_MODEL_PATH = '/home2/akshat/raven/spm/unigram/unigram1000.model'
 
 # DICT_PATH = os.path.join(
 #     os.path.dirname(os.path.abspath(__file__)),
@@ -24,7 +24,7 @@ SP_MODEL_PATH = '/home2/vanshg/raven/spm/unigram/unigram1000.model'
 #     # "unigram5000_units.txt",
 # )
 
-DICT_PATH = '/home2/vanshg/raven/labels/unigram1000_units.txt'
+DICT_PATH = '/home2/akshat/raven/labels/unigram1000_units.txt'
 
 class TextTransform:
     """Mapping Dictionary Class for SentencePiece tokenization."""
@@ -47,7 +47,7 @@ class TextTransform:
 
     def tokenize(self, text):
         tokens = self.spm.EncodeAsPieces(text)
-        print(tokens)
+        # print(tokens)
         token_ids = [self.hashmap.get(token, self.hashmap["<unk>"]) for token in tokens]
         return torch.tensor(list(map(int, token_ids)))
 

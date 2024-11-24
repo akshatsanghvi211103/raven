@@ -37,11 +37,13 @@ def main(cfg):
     # # print(cfg.trainer)
     trainer = Trainer(
         **cfg.trainer,
+        devices=[0],
         # logger=wandb_logger,
         # strategy=DDPPlugin(find_unused_parameters=False) if cfg.gpus > 1 else None
     )
 
-    trainer.test(learner, datamodule=data_module)
+    # trainer.test(learner, datamodule=data_module)
+    trainer.fit(learner, datamodule=data_module)
 
 
 if __name__ == "__main__":

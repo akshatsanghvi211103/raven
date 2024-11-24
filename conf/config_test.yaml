@@ -3,6 +3,7 @@ defaults:
   - data: finetune
   - logger: default
   - logging: default
+  - optimizer: adamw
   - model: finetune
   - trainer: finetune
   - decode: default
@@ -16,6 +17,14 @@ num_workers: 8
 fix_seed: True
 slurm_job_id:
 train: False
+wandb: False
+verbose: True
 log_wandb: True
 test_on_one_gpu: True
 gpus: 1
+exp_dir:
+exp_name:
+logging_dir: /ssd_scratch/cvit/akshat/
+log_folder:
+speaker: eleanor
+finetune: full

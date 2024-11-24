@@ -1,0 +1,610 @@
+diff --git a/conf/config_test.yaml b/conf/config_test.yaml
+index d22fbdc..250050a 100644
+--- a/conf/config_test.yaml
++++ b/conf/config_test.yaml
+@@ -3,6 +3,7 @@ defaults:
+   - data: finetune
+   - logger: default
+   - logging: default
++  - optimizer: adamw
+   - model: finetune
+   - trainer: finetune
+   - decode: default
+@@ -16,6 +17,13 @@ num_workers: 8
+ fix_seed: True
+ slurm_job_id:
+ train: False
++wandb: True
+ log_wandb: True
+ test_on_one_gpu: True
+-gpus: 1
+\ No newline at end of file
++gpus: 1
++exp_dir:
++exp_name:
++logging_dir: /ssd_scratch/cvit/akshat/
++log_folder:
++speaker: eleanor
++finetune: full
+\ No newline at end of file
+diff --git a/conf/data/dataset/lrs3.yaml b/conf/data/dataset/lrs3.yaml
+index b8eff81..291ce0f 100755
+--- a/conf/data/dataset/lrs3.yaml
++++ b/conf/data/dataset/lrs3.yaml
+@@ -6,4 +6,6 @@ fps: 25
+ train_csv: train_with_tags_counts_unigram1000.csv
+ val_csv: val_with_tags_counts_unigram1000.csv
+ test_csv: test_with_tags_counts_unigram1000.csv
+-train_file: /ssd_scratch/cvit/vanshg/datasets/accented_speakers/eleanor/reduced_labels.txt
+\ No newline at end of file
++train_file: /ssd_scratch/cvit/vanshg/datasets/accented_speakers/eleanor/train_reduced_labels.txt
++test_file: /ssd_scratch/cvit/vanshg/datasets/accented_speakers/eleanor/test_reduced_labels.txt
++val_file: /ssd_scratch/cvit/vanshg/datasets/accented_speakers/eleanor/val_reduced_labels.txt
+\ No newline at end of file
+diff --git a/conf/data/finetune.yaml b/conf/data/finetune.yaml
+index bc7fc0b..5a8598e 100755
+--- a/conf/data/finetune.yaml
++++ b/conf/data/finetune.yaml
+@@ -5,4 +5,7 @@ defaults:
+   - crop_type: mouth
+ frames_per_gpu_val: 500
+ modality: video
+-labels_type: unigram1000
+\ No newline at end of file
++labels_type: unigram1000
++use_masking: True
++timemask_window: 15 # 10
++timemask_stride: 25 # 25
+\ No newline at end of file
+diff --git a/conf/model/finetune.yaml b/conf/model/finetune.yaml
+index bf17a9e..2e43ff3 100644
+--- a/conf/model/finetune.yaml
++++ b/conf/model/finetune.yaml
+@@ -3,5 +3,5 @@ defaults:
+   - visual_backbone: resnet_transformer_base
+   - audio_backbone: resnet_transformer_base
+   - language_model: default
+-pretrained_model_path: /ssd_scratch/cvit/vanshg/checkpoints/self_large_vox_433h.pt
+-pretrained_lm_path: /ssd_scratch/cvit/vanshg/checkpoints/rnnlm.model.best
+\ No newline at end of file
++pretrained_model_path: /ssd_scratch/cvit/akshat/checkpoints/vsr_prelrs3vox2_base_ftlrs3.pth
++pretrained_lm_path: /ssd_scratch/cvit/akshat/checkpoints/rnnlm.model.best
+\ No newline at end of file
+diff --git a/conf/trainer/finetune.yaml b/conf/trainer/finetune.yaml
+index 2862c96..fa11ebd 100644
+--- a/conf/trainer/finetune.yaml
++++ b/conf/trainer/finetune.yaml
+@@ -1,2 +1,3 @@
+ precision: 32
+-num_nodes: 1
+\ No newline at end of file
++num_nodes: 1
++default_root_dir: 
+\ No newline at end of file
+diff --git a/data/data_module.py b/data/data_module.py
+index 338d624..4a92d17 100755
+--- a/data/data_module.py
++++ b/data/data_module.py
+@@ -21,6 +21,12 @@ from .samplers import (
+ )
+ from .transforms import AdaptiveLengthTimeMask
+ 
++import numpy as np
++import random
++def seed_worker(worker_id):
++    worker_seed = torch.initial_seed() % 2**32
++    np.random.seed(worker_seed)
++    random.seed(worker_seed)
+ 
+ def pad(samples, pad_val=0.0):
+     lengths = [len(s) for s in samples]
+@@ -71,7 +77,7 @@ class DataModule(LightningDataModule):
+         ] + (
+             [
+                 RandomCrop(args.crop_type.random_crop_dim),
+-                RandomHorizontalFlip(args.horizontal_flip_prob),
++                RandomHorizontalFlip(0.5),
+             ]
+             if mode == "train"
+             else [CenterCrop(args.crop_type.random_crop_dim)]
+@@ -113,18 +119,33 @@ class DataModule(LightningDataModule):
+         return Compose(transform)
+ 
+     def _dataloader(self, ds, collate_fn):
+-        return DataLoader(
++        g = torch.Generator()
++        g.manual_seed(0)
++        return torch.utils.data.DataLoader(
+             ds,
+-            num_workers=self.cfg.num_workers,
+-            pin_memory=True,
++            batch_size=1,
++            num_workers=1,
++            pin_memory=False,
++            worker_init_fn=seed_worker,
++            generator=g,
+             # batch_sampler=sampler,
+             collate_fn=collate_fn,
+         )
++    
++    def train_dataloader(self):
++        ds_args = self.cfg.data.dataset
++        transform_video = self._video_transform(mode="train")
++        train_ds = AVDataset(
++            data_path=ds_args.train_file,
++            transforms={'video': transform_video},
++            modality=self.cfg.data.modality
++        )
++        return self._dataloader(train_ds, collate_pad)
+ 
+     def test_dataloader(self):
+         ds_args = self.cfg.data.dataset
+         print(ds_args, "hi there")
+-        print(self.cfg)
++        # print(self.cfg)
+ 
+         transform_video = self._video_transform(mode="val")
+         transform_audio = self._audio_transform(mode="val")
+@@ -151,3 +172,29 @@ class DataModule(LightningDataModule):
+             # sampler = DistributedSamplerWrapper(sampler, shuffle=False, drop_last=True)
+         # return self._dataloader(test_ds, sampler, collate_pad)
+         return self._dataloader(test_ds, collate_pad)
++
++    def val_dataloader(self):
++        ds_args = self.cfg.data.dataset
++
++        val_dataloaders = []
++        transform_video = self._video_transform(mode="val")
++
++        if ds_args.test_file is not None:
++            dataset = AVDataset(
++                data_path=ds_args.test_file,
++                transforms={"video": transform_video},
++                modality=self.cfg.data.modality
++            )
++            dataloader = self._dataloader(dataset, collate_pad)
++            val_dataloaders.append(dataloader)
++
++        if ds_args.val_file is not None:
++            dataset = AVDataset(
++                data_path=ds_args.val_file,
++                transforms={"video": transform_video},
++                modality=self.cfg.data.modality
++            )
++            dataloader = self._dataloader(dataset, collate_pad)
++            val_dataloaders.append(dataloader)
++
++        return val_dataloaders
+\ No newline at end of file
+diff --git a/data/dataset.py b/data/dataset.py
+index 7ca6635..961b5fd 100755
+--- a/data/dataset.py
++++ b/data/dataset.py
+@@ -103,6 +103,9 @@ class AVDataset(Dataset):
+                 if self.num_fails == 200:
+                     raise ValueError("Too many file errors.")
+                 return {"data": None, "label": None}
+-            data = self.transforms["video"](data).permute((1, 2, 3, 0))
++            data = self.transforms["video"](data).permute((1, 2, 3, 0)) # (T, H, W, C=1)
++            T = data.shape[0]
++            # if T > 400:
++            #     data = data[:400]
+ 
+         return {"data": data, "label": torch.tensor(token_ids)}
+diff --git a/data/transforms.py b/data/transforms.py
+index 5a75455..c62e6c9 100755
+--- a/data/transforms.py
++++ b/data/transforms.py
+@@ -13,7 +13,7 @@ from torchvision.transforms import RandomCrop, RandomResizedCrop
+ #     "unigram",
+ #     "unigram1000.model",
+ # )
+-SP_MODEL_PATH = '/home2/vanshg/raven/spm/unigram/unigram1000.model'
++SP_MODEL_PATH = '/home2/akshat/raven/spm/unigram/unigram1000.model'
+ 
+ # DICT_PATH = os.path.join(
+ #     os.path.dirname(os.path.abspath(__file__)),
+@@ -24,7 +24,7 @@ SP_MODEL_PATH = '/home2/vanshg/raven/spm/unigram/unigram1000.model'
+ #     # "unigram5000_units.txt",
+ # )
+ 
+-DICT_PATH = '/home2/vanshg/raven/labels/unigram1000_units.txt'
++DICT_PATH = '/home2/akshat/raven/labels/unigram1000_units.txt'
+ 
+ class TextTransform:
+     """Mapping Dictionary Class for SentencePiece tokenization."""
+@@ -47,7 +47,7 @@ class TextTransform:
+ 
+     def tokenize(self, text):
+         tokens = self.spm.EncodeAsPieces(text)
+-        print(tokens)
++        # print(tokens)
+         token_ids = [self.hashmap.get(token, self.hashmap["<unk>"]) for token in tokens]
+         return torch.tensor(list(map(int, token_ids)))
+ 
+diff --git a/espnet/nets/batch_beam_search.py b/espnet/nets/batch_beam_search.py
+index 2b35a46..1782da9 100755
+--- a/espnet/nets/batch_beam_search.py
++++ b/espnet/nets/batch_beam_search.py
+@@ -47,7 +47,10 @@ class BatchBeamSearch(BeamSearch):
+     def _batch_select(self, hyps: BatchHypothesis, ids: List[int]) -> BatchHypothesis:
+         hyps.score.to("cuda:0")
+         hyps.length.to("cuda:0")
+-        print(hyps.score.device, hyps.yseq.device, hyps.length.device, ids.device, "nice")
++        # print(hyps.score.device, hyps.yseq.device, hyps.length.device, ids.device, "nice")
++        # print(f"{hyps.score.device = } | {ids.device = }")
++        # NOTE: changed the device of ids
++        ids = ids.cpu()
+         return BatchHypothesis(
+             yseq=hyps.yseq[ids],
+             score=hyps.score[ids],
+diff --git a/finetune_learner.py b/finetune_learner.py
+index c6029ae..67aa588 100644
+--- a/finetune_learner.py
++++ b/finetune_learner.py
+@@ -1,5 +1,9 @@
++import time
++import wandb
+ from pytorch_lightning import LightningModule
+ import torch
++from torch.optim.lr_scheduler import StepLR
++import torchaudio
+ 
+ from espnet.asr.asr_utils import add_results_to_json, torch_load
+ from espnet.nets.batch_beam_search import BatchBeamSearch
+@@ -10,6 +14,81 @@ from espnet.nets.scorers.length_bonus import LengthBonus
+ from metrics import WER
+ from utils import ids_to_str, set_requires_grad, UNIGRAM1000_LIST
+ 
++def compute_word_level_distance(seq1, seq2):
++    return torchaudio.functional.edit_distance(seq1.lower().split(), seq2.lower().split())
++
++def get_weight_norms(model):
++    module_dict = {
++        'frontend3D': model.encoder.frontend.frontend3D,
++        'frontend': model.encoder.frontend,
++        'encoders': model.encoder.encoders,
++        'encoder': model.encoder,
++        'decoder': model.decoder,
++        'ctc': model.ctc,
++        'model': model
++    }
++
++    weight_norm_dict = {}
++    for module_name in module_dict:
++        num_params = 0
++        params_sum = 0
++        weight_norm = 0
++        model_module = module_dict[module_name]
++
++        for name, param in model_module.named_parameters():
++            params_sum += torch.sum(param * param)
++            num_params += param.numel()
++        
++        if num_params:
++            weight_norm = torch.sqrt(params_sum)/num_params 
++            weight_norm = weight_norm.item()
++        
++        # print(f"{module_name} | {num_params = } | {math.sqrt(params_sum) = }")
++        weight_norm_dict[f"{module_name}_weight_norm"] = weight_norm * 1e6
++    
++    return weight_norm_dict
++
++def get_grad_norms(model):
++    module_dict = {
++        'frontend3D': model.encoder.frontend.frontend3D,
++        'frontend': model.encoder.frontend,
++        'encoders': model.encoder.encoders,
++        'encoder': model.encoder,
++        'decoder': model.decoder,
++        'ctc': model.ctc,
++        'model': model
++    }
++
++    grad_norms_dict = {}
++    for module_name in module_dict:
++        num_params = 0 # only considering params with non None grads
++        grads_sum = 0
++        grad_norm = 0
++        model_module = module_dict[module_name]
++
++        for name, param in model_module.named_parameters():
++            grad = param.grad
++            if grad is not None:
++                grads_sum += torch.sum(grad * grad)
++                num_params += grad.numel()
++
++        if num_params:
++            grad_norm = torch.sqrt(grads_sum)/num_params 
++            grad_norm = grad_norm.item()
++        
++        # print(f"{module_name} | {num_params = } | {math.sqrt(grads_sum) = }")
++        grad_norms_dict[f"{module_name}_grad_norm"] = grad_norm * 1e6
++    
++    return grad_norms_dict
++
++def get_lr(opt):
++    return opt.param_groups[0]['lr']
++
++def print_stats(stats_dict):
++    print(f"\n{20*'-'}STATS{20*'-'}")
++    for name, value in stats_dict.items():
++        print(f"{name}: {value}")
++    print(f"{50*'-'}\n")
+ 
+ class Learner(LightningModule):
+     def __init__(self, cfg):
+@@ -29,6 +108,31 @@ class Learner(LightningModule):
+         self.beam_search = self.get_beam_search(self.model)
+         self.wer = WER()
+ 
++        self.log_dir = None
++        self.epoch_loss = 0.0
++        self.epoch_acc = 0.0
++        self.epoch_loss_ctc = 0.0
++        self.epoch_loss_att = 0.0
++        self.epoch_size = 0.0
++        self.print_every = 100
++        self.cur_train_step = 0
++        self.result_data = []
++        # self.speaker = self.cfg.speaker
++        # self.finetune_type = self.cfg.finetune
++
++        if self.global_rank == 0:
++            self.train_epoch_st = 0
++            self.train_epoch_time = 0
++            self.val_wer_results = []
++            self.test_wer_results = []
++
++            self.best_val_epoch = -1
++            self.best_test_epoch = -1
++            self.best_val_wer = 100
++            self.test_wer_at_val = 100
++            self.best_test_wer = 100
++            self.val_wer_at_test = 100
++
+     def load_model(self):
+         if self.cfg.data.labels_type == "unigram1000":
+             odim = len(UNIGRAM1000_LIST)
+@@ -47,6 +151,15 @@ class Learner(LightningModule):
+ 
+         return model
+ 
++    def configure_optimizers(self):
++        optimizer = torch.optim.AdamW([{"name": "model", "params": self.model.parameters(), "lr": self.cfg.optimizer.lr}], weight_decay=self.cfg.optimizer.weight_decay, betas=(0.9, 0.98))
++        # scheduler = WarmupCosineScheduler(optimizer, self.cfg.optimizer.warmup_epochs, self.cfg.trainer.max_epochs, len(self.trainer.datamodule.train_dataloader()))
++        # scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
++        scheduler = StepLR(optimizer, step_size=5, gamma=0.1)
++        scheduler = {"scheduler": scheduler, "interval": "epoch", "frequency": 1}
++        return [optimizer], [scheduler]
++        # return [optimizer]
++
+     def get_beam_search(self, model):
+         if getattr(self.cfg.data, "labels_type", "char") == "unigram1000":
+             token_list = UNIGRAM1000_LIST
+@@ -94,9 +207,11 @@ class Learner(LightningModule):
+         labels = labels.squeeze(1)
+         data = data.squeeze(1)
+         padding_mask = padding_mask
++        # print(f"calc: {labels.shape = } | {data.shape = }")
+         for idx, (vid, label, mask) in enumerate(zip(data, labels, padding_mask)):
+             x = vid[mask].unsqueeze(0)
+             feat, _ = self.model.encoder(x, None)
++            # print(f"calc: {feat.shape = } | {feat.device = }")
+ 
+             if isinstance(self.beam_search, BatchBeamSearch):
+                 nbest_hyps = self.beam_search(
+@@ -106,6 +221,8 @@ class Learner(LightningModule):
+                 )
+             else:
+                 raise NotImplementedError
++            
++            # print(f"calc: {type(nbest_hyps) = }")
+ 
+             nbest_hyps = [h.asdict() for h in nbest_hyps[: min(len(nbest_hyps), 1)]]
+             transcription = add_results_to_json(nbest_hyps, self.token_list)
+@@ -117,13 +234,174 @@ class Learner(LightningModule):
+             groundtruth = groundtruth.replace("▁", " ").strip()
+             transcription = transcription.replace("▁", " ").strip()
+ 
+-            self.wer.update(transcription, groundtruth)
++            # self.wer.update(transcription, groundtruth)
++            # print(f"{self.wer.compute() = }")
++            return groundtruth, transcription
+ 
+     def test_step(self, data, batch_idx):
++        # print(f"{data.keys() = } | {batch_idx = }")
++        # print(f"{data['data_lengths'] = }")
++        # print(f"{data['data'].shape = }")
++
+         lengths = torch.tensor(data["data_lengths"], device=data["data"].device)
+-        padding_mask = make_non_pad_mask(lengths).to(lengths.device)
++        padding_mask = make_non_pad_mask(lengths).to(lengths.device) # (1, T)
++
++        # print(f"{lengths = }")
+         self.calculate_wer(data["data"], padding_mask, data["label"])
+ 
++    def validation_step(self, batch, batch_idx, dataloader_idx=0):
++        # print(f"{data.keys() = } | {batch_idx = }")
++        # print(f"{data['data_lengths'] = }")
++        # print(f"{data['data'].shape = }")
++
++        idx = dataloader_idx
++        lengths = torch.tensor(batch["data_lengths"], device=batch["data"].device)
++        padding_mask = make_non_pad_mask(lengths).to(lengths.device) # (1, T)
++
++        # print(f"{lengths = }")
++        gt_text, pred_text = self.calculate_wer(batch["data"], padding_mask, batch["label"])
++        word_distance = compute_word_level_distance(gt_text, pred_text)
++        gt_len = len(pred_text.split())
++        self.total_edit_distance[idx] += word_distance
++        self.total_length[idx] += gt_len
++        wer = self.total_edit_distance[idx]/self.total_length[idx]
++        print(f"{idx = } | {wer = }")
++
++    def training_step(self, batch, batch_idx):
++        B, C, T, H, W = batch['data'].shape
++        lengths = torch.tensor(batch["data_lengths"], device=batch["data"].device)
++        padding_mask = make_non_pad_mask(lengths).to(lengths.device) # (1, T)
++        label = batch['label']
++
++        inp = batch['data'].squeeze(1) # (B, T, H, W)
++        inp = inp[padding_mask].unsqueeze(0) # (B, C=1, T, H, W)
++        # print(f"{inp.shape = } | {lengths.shape = } | {padding_mask.shape = } | {label.shape = }")
++
++        torch.cuda.empty_cache()
++        out, loss, loss_ctc, loss_att, acc = self.forward(self.model, inp, None, lengths, label)
++        # print(f"{loss = } | {loss_ctc = } | {loss_att = } | {acc = }")
++        
++        batch_size = 1
++        self.epoch_loss += loss.item() * batch_size
++        self.epoch_loss_ctc += loss_ctc.item() * batch_size
++        self.epoch_loss_att += loss_att.item() * batch_size
++        self.epoch_acc += acc * batch_size
++        self.epoch_size += batch_size
++        opt = self.optimizers()
++        # self.cur_lr = get_lr(opt)
++        if self.global_rank == 0:
++            # print(f"{self.cur_train_step = } | {self.cur_lr = }")
++            lr_dict = {'train_step': self.cur_train_step}
++            # if self.cfg.wandb:
++            #     wandb.log(lr_dict)
++
++        self.cur_train_step += 1
++        return loss
++    
++    def on_train_batch_start(self, batch, batch_idx):
++        weight_norms_dict = get_weight_norms(self.model)
++        if self.global_rank == 0:
++            if self.cfg.wandb:
++                wandb.log(weight_norms_dict)
++            # self.log_dict(weight_norms_dict, on_step=True, on_epoch=False,
++            #               logger=True)
++        
++        return super().on_train_batch_start(batch, batch_idx)
++
++    def on_train_batch_end(self, out, batch, batch_idx):
++        grad_norms_dict = get_grad_norms(self.model)
++        if self.global_rank == 0:
++            if self.cfg.wandb:
++                wandb.log(grad_norms_dict)
++            
++            # TODO : This only logs at intervals of 50 for some reason (figure it out)
++            # self.log_dict(grad_norms_dict, on_step=True, on_epoch=False,
++            #               logger=True)
++        
++        return super().on_train_batch_end(out, batch, batch_idx)
++
++    def on_train_epoch_start(self):
++        if self.log_dir is None:
++            if self.loggers:
++                self.log_dir = self.loggers[0].log_dir
++                print(f"{self.log_dir = }")
++                if self.cfg.wandb and self.global_rank == 0:
++                    wandb.log({'log_dir': self.log_dir})
++
++        self.epoch_loss = torch.tensor(0.0).to(self.device)
++        self.epoch_acc = torch.tensor(0.0).to(self.device)
++        self.epoch_loss_ctc = torch.tensor(0.0).to(self.device)
++        self.epoch_loss_att = torch.tensor(0.0).to(self.device)
++        self.epoch_size = torch.tensor(0.0).to(self.device)
++        if self.global_rank == 0:
++            self.train_epoch_st = time.time()
++
++        return super().on_train_epoch_start()
++
++    def on_train_epoch_end(self) -> None:
++        # Gathering the values across GPUs
++        self.epoch_loss = self.all_gather(self.epoch_loss, sync_grads=False).sum()
++        self.epoch_loss_ctc = self.all_gather(self.epoch_loss_ctc, sync_grads=False).sum()
++        self.epoch_loss_att = self.all_gather(self.epoch_loss_att, sync_grads=False).sum()
++        self.epoch_acc = self.all_gather(self.epoch_acc, sync_grads=False).sum()
++        self.epoch_size = self.all_gather(self.epoch_size, sync_grads=False).sum()
++
++        # Logging from process with global rank = 0
++        if self.global_rank == 0:
++            self.train_epoch_time = time.time() - self.train_epoch_st
++            # self.epoch_time_meter.update(self.train_epoch_time)
++
++            log_dict = {
++                "train_loss_epoch": self.epoch_loss/self.epoch_size,
++                "train_loss_ctc_epoch": self.epoch_loss_ctc/self.epoch_size,
++                "train_loss_att_epoch": self.epoch_loss_att/self.epoch_size,
++                "train_decoder_acc_epoch": self.epoch_acc/self.epoch_size,
++                "train_epoch_time": self.train_epoch_time,
++                # "avg_train_epoch_time": self.epoch_time_meter.avg,
++                # "total_train_epoch_time": self.epoch_time_meter.sum,
++                "epoch": self.current_epoch
++            }
++            self.log_dict(log_dict, logger=True)
++            print_stats(log_dict)
++
++        return super().on_train_epoch_end()
++
++    def on_validation_epoch_start(self):
++        self.num_val_loaders = len(self.trainer.val_dataloaders)
++        self.total_length = [0 for i in range(self.num_val_loaders)]
++        self.total_edit_distance = [0 for i in range(self.num_val_loaders)]
++        # self.result_data = [[] for i in range(self.num_val_loaders)]
++
++    def on_validation_epoch_end(self):
++        if self.global_rank == 0:
++            for idx in range(self.num_val_loaders):
++                if idx == 0:
++                    val_type = "test"
++                else:
++                    val_type = f"val{idx}"
++
++                wer = self.total_edit_distance[idx]/self.total_length[idx]
++                log_dict = {'epoch': self.current_epoch}
++                if idx == 0:
++                    log_dict['wer_test_epoch'] = wer
++                    # self.test_wer_results.append(wer)
++                else:
++                    log_dict[f"wer_val{idx}_epoch"] = wer
++                    # self.val_wer_results.append(wer)
++
++                if self.cfg.wandb:
++                    wandb.log(log_dict)
++                else:
++                    self.log_dict(log_dict, logger=True)
++                print_stats(log_dict)
++    
++        # wer = self.wer.compute()
++        # print(f"WER: {wer}")
++        # if self.cfg.wandb:
++        #     wandb.log({'val_wer': wer})
++        # # self.log("wer", wer)
++        # self.wer.reset()
++
+     def on_test_epoch_end(self, outputs):
+         wer = self.wer.compute()
+         print(wer)
+diff --git a/test.py b/test.py
+index d913c63..248e9d7 100755
+--- a/test.py
++++ b/test.py
+@@ -37,11 +37,13 @@ def main(cfg):
+     # # print(cfg.trainer)
+     trainer = Trainer(
+         **cfg.trainer,
++        devices=[0],
+         # logger=wandb_logger,
+         # strategy=DDPPlugin(find_unused_parameters=False) if cfg.gpus > 1 else None
+     )
+ 
+-    trainer.test(learner, datamodule=data_module)
++    # trainer.test(learner, datamodule=data_module)
++    trainer.fit(learner, datamodule=data_module)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/wandb/latest-run b/wandb/latest-run
+index f6bbde1..c4aa590 120000
+--- a/wandb/latest-run
++++ b/wandb/latest-run
+@@ -1 +1 @@
+-run-20241122_220904-epvqca4t
+\ No newline at end of file
++run-20241124_233418-s93wf900
+\ No newline at end of file

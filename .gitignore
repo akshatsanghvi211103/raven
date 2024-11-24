@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 video_path_prefix_the_book_leo/
 processed_videos
+lightning_logs
 
 # C extensions
 *.so

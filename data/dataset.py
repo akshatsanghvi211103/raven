@@ -103,6 +103,10 @@ class AVDataset(Dataset):
                 if self.num_fails == 200:
                     raise ValueError("Too many file errors.")
                 return {"data": None, "label": None}
-            data = self.transforms["video"](data).permute((1, 2, 3, 0))
+            data = self.transforms["video"](data).permute((1, 2, 3, 0)) # (T, H, W, C=1)
+            T = data.shape[0]
+            # if T > 400:
+            #     data = data[:400]
 
-        return {"data": data, "label": torch.tensor(token_ids)}
+        return {"data": data, "label": torch.tensor(token_ids), 
+                'idx': torch.tensor(index), 'video_path': file_path}

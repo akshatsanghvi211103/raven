@@ -6,3 +6,6 @@ defaults:
 frames_per_gpu_val: 500
 modality: video
 labels_type: unigram1000
+use_masking: True
+timemask_window: 15 # 10
+timemask_stride: 25 # 25

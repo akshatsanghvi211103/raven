@@ -1,0 +1,181 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    code_path: code/finetune_deaf.py
+    python_version: 3.9.18
+    cli_version: 0.16.2
+    framework: huggingface
+    huggingface_version: 4.39.3
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1732466465.29102
+    t:
+      1:
+      - 1
+      - 9
+      - 11
+      - 41
+      - 49
+      - 50
+      - 55
+      - 103
+      2:
+      - 1
+      - 9
+      - 11
+      - 41
+      - 49
+      - 50
+      - 55
+      - 103
+      3:
+      - 7
+      - 13
+      - 23
+      4: 3.9.18
+      5: 0.16.2
+      6: 4.39.3
+      8:
+      - 5
+      13: linux-x86_64
+    m:
+    - 1: trainer/global_step
+      6:
+      - 3
+    - 1: log_dir
+      5: 1
+      6:
+      - 1
+    - 1: train_loss_epoch
+      5: 1
+      6:
+      - 1
+    - 1: train_loss_ctc_epoch
+      5: 1
+      6:
+      - 1
+    - 1: train_loss_att_epoch
+      5: 1
+      6:
+      - 1
+    - 1: train_decoder_acc_epoch
+      5: 1
+      6:
+      - 1
+    - 1: train_epoch_time
+      5: 1
+      6:
+      - 1
+    - 1: epoch
+      5: 1
+      6:
+      - 1
+project_name:
+  desc: null
+  value: raven_test
+experiment_name:
+  desc: null
+  value: null
+num_workers:
+  desc: null
+  value: 8
+fix_seed:
+  desc: null
+  value: true
+slurm_job_id:
+  desc: null
+  value: null
+train:
+  desc: null
+  value: false
+wandb:
+  desc: null
+  value: true
+log_wandb:
+  desc: null
+  value: true
+test_on_one_gpu:
+  desc: null
+  value: true
+gpus:
+  desc: null
+  value: 1
+exp_dir:
+  desc: null
+  value: /ssd_scratch/cvit/akshat/raven_eleanor_finetuning/eleanor_full
+exp_name:
+  desc: null
+  value: null
+logging_dir:
+  desc: null
+  value: /ssd_scratch/cvit/akshat/
+log_folder:
+  desc: null
+  value: /ssd_scratch/cvit/akshat/raven_eleanor_finetuning/eleanor_full
+speaker:
+  desc: null
+  value: eleanor
+finetune:
+  desc: null
+  value: full
+data:
+  desc: null
+  value: '{''frames_per_gpu_val'': 500, ''modality'': ''video'', ''labels_type'':
+    ''unigram1000'', ''use_masking'': True, ''timemask_window'': 15, ''timemask_stride'':
+    25, ''dataset'': {''sample_rate'': 16000, ''fps'': 25, ''train_csv'': ''train_with_tags_counts_unigram1000.csv'',
+    ''val_csv'': ''val_with_tags_counts_unigram1000.csv'', ''test_csv'': ''test_with_tags_counts_unigram1000.csv'',
+    ''train_file'': ''/ssd_scratch/cvit/vanshg/datasets/accented_speakers/eleanor/small_train.txt'',
+    ''val_file'': ''/ssd_scratch/cvit/vanshg/datasets/accented_speakers/eleanor/val_reduced_labels.txt'',
+    ''paths'': {''root_lrs3_video'': None, ''root_lrs3_audio'': None, ''root_lrs2_video'':
+    None, ''root_lrs2_audio'': None}}, ''channel'': {''obj'': {''_target_'': ''torchvision.transforms.Normalize'',
+    ''mean'': [0.421], ''std'': [0.165]}, ''in_video_channels'': 1}, ''crop_type'':
+    {''random_crop_dim'': 88}}'
+logger:
+  desc: null
+  value: '{''_target_'': ''pytorch_lightning.loggers.WandbLogger'', ''log_model'':
+    True, ''name'': ''${experiment_name}'', ''offline'': False, ''project'': ''${project_name}'',
+    ''mode'': ''online'', ''entity'': None}'
+logging:
+  desc: null
+  value: '{''logging_interval'': ''step''}'
+optimizer:
+  desc: null
+  value: '{''name'': ''adamw'', ''lr'': 0.0001, ''warmup_epochs'': 5, ''weight_decay'':
+    1.0}'
+model:
+  desc: null
+  value: '{''pretrained_model_path'': ''/home2/akshat/vsr_prelrs3vox2_large_ftlrs3.pth'',
+    ''pretrained_lm_path'': ''/ssd_scratch/cvit/vanshg/checkpoints/rnnlm.model.best'',
+    ''visual_backbone'': {''idim'': 512, ''adim'': 1024, ''aheads'': 16, ''eunits'':
+    4096, ''elayers'': 24, ''transformer_frontend'': ''conv3d'', ''transformer_input_layer'':
+    ''vanilla_linear'', ''dropout_rate'': 0.1, ''transformer_attn_dropout_rate'':
+    0.1, ''transformer_encoder_attn_layer_type'': ''rel_mha'', ''macaron_style'':
+    False, ''use_cnn_module'': False, ''cnn_module_kernel'': 31, ''zero_triu'': False,
+    ''a_upsample_ratio'': 1, ''relu_type'': ''swish'', ''ddim'': ''${model.visual_backbone.adim}'',
+    ''dheads'': ''${model.visual_backbone.aheads}'', ''dunits'': ''${model.visual_backbone.eunits}'',
+    ''dlayers'': 9, ''lsm_weight'': 0.1, ''transformer_length_normalized_loss'': False,
+    ''rel_pos_type'': ''latest'', ''layerscale'': True, ''init_values'': 0.1, ''ff_bn_pre'':
+    True, ''post_norm'': False, ''gamma_zero'': False, ''gamma_init'': 0.1, ''mask_init_type'':
+    None, ''ctc_type'': ''warpctc'', ''drop_path'': 0.1, ''mtlalpha'': 0.1}, ''audio_backbone'':
+    {''idim'': 512, ''adim'': 1024, ''aheads'': 16, ''eunits'': 4096, ''elayers'':
+    24, ''transformer_frontend'': ''conv1d'', ''transformer_input_layer'': ''vanilla_linear'',
+    ''dropout_rate'': 0.1, ''transformer_attn_dropout_rate'': 0.1, ''transformer_encoder_attn_layer_type'':
+    ''rel_mha'', ''macaron_style'': False, ''use_cnn_module'': False, ''cnn_module_kernel'':
+    31, ''zero_triu'': False, ''a_upsample_ratio'': 1, ''relu_type'': ''swish'', ''ddim'':
+    ''${model.audio_backbone.adim}'', ''dheads'': ''${model.audio_backbone.aheads}'',
+    ''dunits'': ''${model.audio_backbone.eunits}'', ''dlayers'': 9, ''lsm_weight'':
+    0.1, ''transformer_length_normalized_loss'': False, ''rel_pos_type'': ''latest'',
+    ''layerscale'': True, ''init_values'': 0.1, ''ff_bn_pre'': True, ''post_norm'':
+    False, ''gamma_zero'': False, ''gamma_init'': 0.1, ''mask_init_type'': None, ''ctc_type'':
+    ''warpctc'', ''drop_path'': 0.1, ''mtlalpha'': 0.1}, ''language_model'': {''pos_enc'':
+    ''none'', ''embed_unit'': 128, ''att_unit'': 512, ''head'': 8, ''unit'': 2048,
+    ''layer'': 16, ''dropout_rate'': 0.0}}'
+trainer:
+  desc: null
+  value: '{''precision'': 32, ''num_nodes'': 1, ''default_root_dir'': ''/ssd_scratch/cvit/akshat/raven_eleanor_finetuning/eleanor_full''}'
+decode:
+  desc: null
+  value: '{''name'': ''default'', ''penalty'': 0.0, ''ctc_weight'': 0.1, ''lm_weight'':
+    0.0, ''beam_size'': 40, ''minlenratio'': 0.0, ''maxlenratio'': 0.0}'
