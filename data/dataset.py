@@ -104,24 +104,5 @@ class AVDataset(Dataset):
                     raise ValueError("Too many file errors.")
                 return {"data": None, "label": None}
             data = self.transforms["video"](data).permute((1, 2, 3, 0))
-        # elif self.modality == "audio":
-        #     data = self.load_audio(
-        #         os.path.join(self.audio_path_prefix, file_path[:-4] + ".wav")
-        #     )
-        #     data = self.transforms["audio"](data).squeeze(0)
-        # elif self.modality == "audiovisual":
-        #     video = self.load_video(os.path.join(self.video_path_prefix, file_path))
-        #     if video is None:
-        #         self.num_fails += 1
-        #         if self.num_fails == 200:
-        #             raise ValueError("Too many file errors.")
-        #         return {"video": None, "audio": None, "label": None}
-        #     audio = self.load_audio(
-        #         os.path.join(self.audio_path_prefix, file_path[:-4] + ".wav")
-        #     )
-        #     audio = cut_or_pad(audio.squeeze(0), video.size(1) * 640)
-        #     video = self.transforms["video"](video).permute((1, 2, 3, 0))
-        #     audio = self.transforms["audio"](audio.unsqueeze(0)).squeeze(0)
-        #     return {"video": video, "audio": audio, "label": torch.tensor(label)}
 
         return {"data": data, "label": torch.tensor(token_ids)}

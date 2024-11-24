@@ -15,7 +15,7 @@ from torchvision.transforms import (
 
 from .dataset import AVDataset
 from .samplers import (
-    ByFrameCountSampler,
+    # ByFrameCountSampler,
     DistributedSamplerWrapper,
     RandomSamplerWrapper,
 )
@@ -112,7 +112,7 @@ class DataModule(LightningDataModule):
 
         return Compose(transform)
 
-    def _dataloader(self, ds, sampler, collate_fn):
+    def _dataloader(self, ds, collate_fn):
         return DataLoader(
             ds,
             num_workers=self.cfg.num_workers,
@@ -135,7 +135,8 @@ class DataModule(LightningDataModule):
 
         test_ds = AVDataset(
             # data_path=os.path.join(parent_path, "data_paths", ds_args.test_csv),
-            data_path=os.path.join(parent_path, "output.txt"),
+            # data_path=os.path.join(parent_path, "output.txt"),
+            data_path=ds_args.train_file,
             # video_path_prefix_lrs2=ds_args.paths.root_lrs2_video,
             # audio_path_prefix_lrs2=ds_args.paths.root_lrs2_audio,
             # video_path_prefix_lrs3=ds_args.paths.root_lrs3_video,
@@ -143,9 +144,10 @@ class DataModule(LightningDataModule):
             transforms={"video": transform_video, "audio": transform_audio},
             modality=self.cfg.data.modality,
         )
-        sampler = ByFrameCountSampler(
-            test_ds, self.cfg.data.frames_per_gpu_val, shuffle=False
-        )
+        # sampler = ByFrameCountSampler(
+        #     test_ds, self.cfg.data.frames_per_gpu_val, shuffle=False
+        # )
         # if self.total_gpus > 1:
             # sampler = DistributedSamplerWrapper(sampler, shuffle=False, drop_last=True)
-        return self._dataloader(test_ds, sampler, collate_pad)
+        # return self._dataloader(test_ds, sampler, collate_pad)
+        return self._dataloader(test_ds, collate_pad)

@@ -3,5 +3,5 @@ defaults:
   - visual_backbone: resnet_transformer_base
   - audio_backbone: resnet_transformer_base
   - language_model: default
-pretrained_model_path:
-pretrained_lm_path:
+pretrained_model_path: /ssd_scratch/cvit/vanshg/checkpoints/self_large_vox_433h.pt
+pretrained_lm_path: /ssd_scratch/cvit/vanshg/checkpoints/rnnlm.model.best

@@ -1,51 +1,51 @@
 from typing import Iterator, Optional
 from operator import itemgetter
 
-from fairseq.data import data_utils
+# from fairseq.data import data_utils
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DistributedSampler, RandomSampler
 from torch.utils.data.sampler import Sampler
 
 
-class ByFrameCountSampler(Sampler):
-    def __init__(self, dataset, max_frames_per_gpu, shuffle=True, seed=0):
-        self.dataset = dataset
-        self.max_frames_per_gpu = max_frames_per_gpu
-        self.sizes = [item[2] for item in self.dataset.paths_counts_labels]
+# class ByFrameCountSampler(Sampler):
+#     def __init__(self, dataset, max_frames_per_gpu, shuffle=True, seed=0):
+#         self.dataset = dataset
+#         self.max_frames_per_gpu = max_frames_per_gpu
+#         self.sizes = [item[2] for item in self.dataset.paths_counts_labels]
 
-        self.shuffle = shuffle
-        self.seed = seed
-        self.epoch = 0
+#         self.shuffle = shuffle
+#         self.seed = seed
+#         self.epoch = 0
 
-        batch_indices = data_utils.batch_by_size(
-            self._get_indices(), lambda i: self.sizes[i], max_tokens=max_frames_per_gpu
-        )
-        self.num_batches = len(batch_indices)
+#         batch_indices = data_utils.batch_by_size(
+#             self._get_indices(), lambda i: self.sizes[i], max_tokens=max_frames_per_gpu
+#         )
+#         self.num_batches = len(batch_indices)
 
-    def _get_indices(self):
-        if self.shuffle:  # Shuffles indices corresponding to equal lengths
-            g = torch.Generator()
-            g.manual_seed(self.seed + self.epoch)
-            order = [torch.randperm(len(self.dataset), generator=g).tolist()]
-        else:
-            order = [list(range(len(self.dataset)))]
-        order.append(self.sizes)
-        return np.lexsort(order)[::-1]
+    # def _get_indices(self):
+    #     if self.shuffle:  # Shuffles indices corresponding to equal lengths
+    #         g = torch.Generator()
+    #         g.manual_seed(self.seed + self.epoch)
+    #         order = [torch.randperm(len(self.dataset), generator=g).tolist()]
+    #     else:
+    #         order = [list(range(len(self.dataset)))]
+    #     order.append(self.sizes)
+    #     return np.lexsort(order)[::-1]
 
-    def __len__(self):
-        return self.num_batches
+    # def __len__(self):
+    #     return self.num_batches
 
-    def __iter__(self):
-        batch_indices = data_utils.batch_by_size(
-            self._get_indices(),
-            lambda i: self.sizes[i],
-            max_tokens=self.max_frames_per_gpu,
-        )
-        return iter(batch_indices)
+    # def __iter__(self):
+    #     batch_indices = data_utils.batch_by_size(
+    #         self._get_indices(),
+    #         lambda i: self.sizes[i],
+    #         max_tokens=self.max_frames_per_gpu,
+    #     )
+    #     return iter(batch_indices)
 
-    def set_epoch(self, epoch):
-        self.epoch = epoch
+    # def set_epoch(self, epoch):
+    #     self.epoch = epoch
 
 
 class DatasetFromSampler(Dataset):

@@ -21,11 +21,12 @@ def main(cfg):
     if cfg.fix_seed:
         seed_everything(42, workers=True)
 
-    print("The SLURM job ID for this run is {}".format(os.environ["SLURM_JOB_ID"]))
-    cfg.slurm_job_id = os.environ["SLURM_JOB_ID"]
+    # print("The SLURM job ID for this run is {}".format(os.environ["SLURM_JOB_ID"]))
+    # cfg.slurm_job_id = os.environ["SLURM_JOB_ID"]
 
     # cfg.gpus = torch.cuda.device_count()
-    # print("num gpus:", cfg.gpus)
+    cfg.gpus = 1
+    print("num gpus:", cfg.gpus)
 
     # wandb_logger = None
     # if cfg.log_wandb:
@@ -33,7 +34,7 @@ def main(cfg):
 
     data_module = DataModule(cfg)
     learner = Learner(cfg)
-    # print(cfg.trainer)
+    # # print(cfg.trainer)
     trainer = Trainer(
         **cfg.trainer,
         # logger=wandb_logger,
